@@ -297,8 +297,8 @@ const _firebaseConfig = {
 };
 // Friendly names for attribution display (maps the locked emails → short labels).
 const ALLOWED = {
-  "aanspaugh@gmail.com": "You",
-  "janspaugh90@gmail.com": "Wife",
+  "aanspaugh@gmail.com": "Aaron",
+  "janspaugh90@gmail.com": "Jessica",
 };
 
 const _app  = initializeApp(_firebaseConfig);
@@ -395,7 +395,7 @@ function firstLiveTrip() {
 }
 function curTrip() { return currentTripId ? trips[currentTripId] : null; }
 
-const TIER_LABEL = { 1: "Tier 1 · can't replace on the road", 2: "Tier 2 · don't re-buy", 3: "Tier 3 · buy-there OK" };
+const TIER_LABEL = { 1: "Tier 1 · can't replace on the road", 2: "Tier 2 · don't re-buy", 3: "Tier 3 · optional or buy-there OK" };
 
 // ============================================================================
 // Rendering
