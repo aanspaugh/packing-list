@@ -96,11 +96,12 @@
     .tab-section.active { display: block; }
 
     .tier-head {
-      display: flex; align-items: center; gap: 0.5rem;
-      margin: 1.1rem 0.15rem 0.5rem; font-size: 0.78rem; font-weight: 700;
+      display: flex; align-items: center; gap: 0.45rem;
+      margin: 0.7rem 0.15rem 0.3rem; font-size: 0.74rem; font-weight: 700;
       letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted);
     }
-    .tier-head:first-child { margin-top: 0.2rem; }
+    .tier-head:first-child { margin-top: 0.1rem; }
+    .tier-count { font-weight: 600; color: var(--text-faint); text-transform: none; }
     .tier-head .dot { width: 10px; height: 10px; border-radius: 50%; }
     .tier-head.t1 .dot { background: var(--tier1); }
     .tier-head.t2 .dot { background: var(--tier2); }
@@ -109,38 +110,38 @@
     /* ── Item card ────────────────────────────────────── */
     .item {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow);
-      padding: 0.7rem 0.8rem; margin-bottom: 0.55rem;
-      display: flex; align-items: center; gap: 0.6rem;
+      border-radius: var(--radius-sm); box-shadow: var(--shadow);
+      padding: 0.38rem 0.6rem; margin-bottom: 0.35rem;
+      display: flex; align-items: center; gap: 0.55rem;
     }
     .item.tier1 { border-left: 4px solid var(--tier1); }
     .item.tier2 { border-left: 4px solid var(--tier2); }
     .item.tier3 { border-left: 4px solid var(--tier3); }
     .item.done-vehicle { background: var(--surface-2); }
     .item-main { flex: 1; min-width: 0; }
-    .item-name { font-weight: 600; font-size: 0.98rem; word-break: break-word; }
+    .item-name { font-weight: 600; font-size: 0.9rem; word-break: break-word; line-height: 1.25; }
     .item.done-vehicle .item-name { color: var(--text-muted); }
-    .item-sub { font-size: 0.72rem; color: var(--text-faint); margin-top: 0.15rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .item-sub { font-size: 0.7rem; color: var(--text-faint); margin-top: 0.08rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .item-qty { font-weight: 600; color: var(--text-muted); }
 
     .checks { display: flex; gap: 0.4rem; flex-shrink: 0; }
     .pill {
-      min-width: 60px; min-height: var(--tap);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 0.1rem; padding: 0.3rem 0.55rem; border-radius: var(--radius-sm);
+      min-width: 62px; min-height: 38px; white-space: nowrap;
+      display: flex; flex-direction: row; align-items: center; justify-content: center;
+      gap: 0.25rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);
       border: 2px solid var(--border-strong); background: var(--surface-2);
       color: var(--text-muted); font-size: 0.66rem; font-weight: 700;
       letter-spacing: 0.02em; -webkit-tap-highlight-color: transparent; user-select: none;
     }
-    .pill .mark { font-size: 0.95rem; line-height: 1; }
+    .pill .mark { font-size: 0.8rem; line-height: 1; }
     .pill.packed.on  { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
     .pill.vehicle.on { border-color: var(--vehicle); background: var(--vehicle-light); color: var(--vehicle); }
 
     /* prep item */
     .prep-check {
-      width: var(--tap); height: var(--tap); flex-shrink: 0; border-radius: var(--radius-sm);
+      width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-sm);
       border: 2px solid var(--border-strong); background: var(--surface-2);
-      display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: transparent;
+      display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: transparent;
     }
     .prep-check.on { border-color: var(--ok); background: #dcfce7; color: var(--ok); }
     .item.prep.done .item-name { color: var(--text-muted); text-decoration: line-through; text-decoration-color: var(--text-faint); }
@@ -467,7 +468,7 @@ function renderPack() {
       const group = items.filter(([, i]) => (i.priority || 3) === tier)
         .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
       if (!group.length) continue;
-      html += `<div class="tier-head t${tier}"><span class="dot"></span>${TIER_LABEL[tier]}</div>`;
+      html += `<div class="tier-head t${tier}"><span class="dot"></span>${TIER_LABEL[tier]} <span class="tier-count">(${group.length})</span></div>`;
       for (const [id, i] of group) html += packItemHTML(id, i);
     }
   }
@@ -636,7 +637,7 @@ function openItemEditor(kind, id) {
     <select id="ie-tier">
       <option value="1" ${i.priority==1?'selected':''}>Tier 1 — can't replace on the road</option>
       <option value="2" ${i.priority==2?'selected':''}>Tier 2 — don't re-buy</option>
-      <option value="3" ${(i.priority||3)==3?'selected':''}>Tier 3 — buy-there OK</option>
+      <option value="3" ${(i.priority||3)==3?'selected':''}>Tier 3 — optional or buy-there OK</option>
     </select>
     <label>Quantity</label>
     <input type="number" id="ie-qty" min="1" value="${i.qty||1}" />` : '';
