@@ -1,0 +1,15 @@
+{
+  "rules": {
+    ".read": "auth != null && auth.token.email_verified == true && (auth.token.email == 'aanspaugh@gmail.com' || auth.token.email == 'janspaugh90@gmail.com')",
+
+    "trips": {
+      "$tripId": {
+        ".write": "auth != null && auth.token.email_verified == true && (auth.token.email == 'aanspaugh@gmail.com' || auth.token.email == 'janspaugh90@gmail.com') && (newData.exists() || data.child('meta/deleted').val() == true)"
+      }
+    },
+
+    "activeTrip": {
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email == 'aanspaugh@gmail.com' || auth.token.email == 'janspaugh90@gmail.com')"
+    }
+  }
+}

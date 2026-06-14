@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Packing List</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      /* Modern slate + blue palette (deliberately NOT themed) */
+      --bg:            #f1f5f9;   /* slate-100 */
+      --surface:       #ffffff;
+      --surface-2:     #f8fafc;   /* slate-50 */
+      --border:        #e2e8f0;   /* slate-200 */
+      --border-strong: #cbd5e1;   /* slate-300 */
+      --text:          #0f172a;   /* slate-900 */
+      --text-muted:    #475569;   /* slate-600 */
+      --text-faint:    #94a3b8;   /* slate-400 */
+      --primary:       #2563eb;   /* blue-600  — "Packed" */
+      --primary-light: #dbeafe;   /* blue-100  */
+      --primary-dark:  #1e3a8a;   /* blue-900  */
+      --vehicle:       #4338ca;   /* indigo-700 — "In Vehicle" */
+      --vehicle-light: #e0e7ff;   /* indigo-100 */
+      --tier1:         #b91c1c;   /* red-700   — irreplaceable emphasis */
+      --tier1-light:   #fee2e2;   /* red-100   */
+      --tier2:         #15803d;   /* green-700 */
+      --tier3:         #2563eb;   /* blue-600  */
+      --danger:        #dc2626;
+      --ok:            #15803d;
+      --shadow:        0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.06);
+      --shadow-lg:     0 10px 30px rgba(15,23,42,0.18);
+      --radius:        14px;
+      --radius-sm:     9px;
+      --tap:           48px;
+    }
+    html { font-size: 17px; -webkit-text-size-adjust: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh; padding-bottom: 6rem; line-height: 1.4;
+    }
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ── Header ───────────────────────────────────────── */
+    .site-header {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--primary-dark); color: #fff;
+      box-shadow: 0 2px 10px rgba(15,23,42,0.25);
+      padding-top: env(safe-area-inset-top);
+    }
+    .header-top {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.6rem 0.85rem;
+    }
+    .trip-switch {
+      flex: 1; min-width: 0; display: flex; flex-direction: column;
+      align-items: flex-start; gap: 0.05rem;
+      background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: var(--radius-sm); padding: 0.4rem 0.7rem; color: #fff;
+      text-align: left;
+    }
+    .trip-switch:active { background: rgba(255,255,255,0.18); }
+    .trip-switch .ts-label { font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; color: #bfdbfe; }
+    .trip-switch .ts-name  { font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .trip-switch .ts-name::after { content: " ▾"; color: #93c5fd; font-size: 0.8em; }
+    .icon-btn {
+      flex-shrink: 0; width: var(--tap); height: var(--tap);
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: var(--radius-sm); color: #fff; font-size: 1.2rem;
+    }
+    .icon-btn:active { background: rgba(255,255,255,0.2); }
+    .trip-dates {
+      padding: 0 0.85rem 0.45rem; font-size: 0.82rem; font-weight: 600; color: #bfdbfe;
+    }
+    .header-progress {
+      display: flex; gap: 0.4rem; padding: 0 0.85rem 0.6rem; flex-wrap: wrap;
+    }
+    .prog-chip {
+      font-size: 0.72rem; font-weight: 600; color: #e0e7ff;
+      background: rgba(255,255,255,0.12); border-radius: 20px; padding: 0.2rem 0.65rem;
+    }
+
+    /* ── Tabs ─────────────────────────────────────────── */
+    .tab-bar { display: flex; background: var(--primary-dark); }
+    .tab-btn {
+      flex: 1; padding: 0.65rem 0.4rem; background: none; border: none;
+      color: rgba(255,255,255,0.6); font-size: 0.9rem; font-weight: 600;
+      border-bottom: 3px solid transparent; line-height: 1;
+    }
+    .tab-btn.active { color: #fff; border-bottom-color: #60a5fa; }
+
+    /* ── Layout ───────────────────────────────────────── */
+    .wrap { max-width: 760px; margin: 0 auto; padding: 0.85rem; }
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
+
+    .tier-head {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin: 1.1rem 0.15rem 0.5rem; font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted);
+    }
+    .tier-head:first-child { margin-top: 0.2rem; }
+    .tier-head .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .tier-head.t1 .dot { background: var(--tier1); }
+    .tier-head.t2 .dot { background: var(--tier2); }
+    .tier-head.t3 .dot { background: var(--tier3); }
+
+    /* ── Item card ────────────────────────────────────── */
+    .item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 0.7rem 0.8rem; margin-bottom: 0.55rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .item.tier1 { border-left: 4px solid var(--tier1); }
+    .item.tier2 { border-left: 4px solid var(--tier2); }
+    .item.tier3 { border-left: 4px solid var(--tier3); }
+    .item.done-vehicle { background: var(--surface-2); }
+    .item-main { flex: 1; min-width: 0; }
+    .item-name { font-weight: 600; font-size: 0.98rem; word-break: break-word; }
+    .item.done-vehicle .item-name { color: var(--text-muted); }
+    .item-sub { font-size: 0.72rem; color: var(--text-faint); margin-top: 0.15rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .item-qty { font-weight: 600; color: var(--text-muted); }
+
+    .checks { display: flex; gap: 0.4rem; flex-shrink: 0; }
+    .pill {
+      min-width: 60px; min-height: var(--tap);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 0.1rem; padding: 0.3rem 0.55rem; border-radius: var(--radius-sm);
+      border: 2px solid var(--border-strong); background: var(--surface-2);
+      color: var(--text-muted); font-size: 0.66rem; font-weight: 700;
+      letter-spacing: 0.02em; -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .pill .mark { font-size: 0.95rem; line-height: 1; }
+    .pill.packed.on  { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+    .pill.vehicle.on { border-color: var(--vehicle); background: var(--vehicle-light); color: var(--vehicle); }
+
+    /* prep item */
+    .prep-check {
+      width: var(--tap); height: var(--tap); flex-shrink: 0; border-radius: var(--radius-sm);
+      border: 2px solid var(--border-strong); background: var(--surface-2);
+      display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: transparent;
+    }
+    .prep-check.on { border-color: var(--ok); background: #dcfce7; color: var(--ok); }
+    .item.prep.done .item-name { color: var(--text-muted); text-decoration: line-through; text-decoration-color: var(--text-faint); }
+
+    /* ── Add row ──────────────────────────────────────── */
+    .add-row {
+      display: flex; gap: 0.45rem; margin-top: 0.8rem;
+      position: sticky; bottom: 0.6rem;
+    }
+    .add-row input[type=text] {
+      flex: 1; min-width: 0; font-size: 0.95rem; padding: 0.7rem 0.8rem;
+      border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+      background: var(--surface);
+    }
+    .add-row select {
+      font-size: 0.85rem; padding: 0.5rem; border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm); background: var(--surface);
+    }
+    .add-row .add-btn {
+      min-width: var(--tap); min-height: var(--tap); border: none; border-radius: var(--radius-sm);
+      background: var(--primary); color: #fff; font-size: 1.4rem; font-weight: 700;
+      box-shadow: var(--shadow);
+    }
+    .add-row .add-btn:active { background: var(--primary-dark); }
+
+    .empty { text-align: center; color: var(--text-faint); padding: 2.5rem 1rem; font-size: 0.95rem; }
+
+    /* notes */
+    #notesArea {
+      width: 100%; min-height: 50vh; resize: vertical; font-size: 0.95rem; line-height: 1.5;
+      padding: 0.9rem; border: 1px solid var(--border-strong); border-radius: var(--radius);
+      background: var(--surface); font-family: inherit;
+    }
+    .notes-hint { font-size: 0.78rem; color: var(--text-faint); margin: 0.2rem 0.15rem 0.6rem; }
+
+    /* ── Sheet / modal ────────────────────────────────── */
+    .sheet-backdrop {
+      position: fixed; inset: 0; z-index: 100; background: rgba(15,23,42,0.45);
+      display: none; align-items: flex-end; justify-content: center;
+    }
+    .sheet-backdrop.open { display: flex; }
+    .sheet {
+      width: 100%; max-width: 600px; background: var(--surface);
+      border-radius: 18px 18px 0 0; box-shadow: var(--shadow-lg);
+      max-height: 88vh; overflow-y: auto; padding: 1rem 1rem calc(1.2rem + env(safe-area-inset-bottom));
+    }
+    @media (min-width: 620px) { .sheet-backdrop { align-items: center; } .sheet { border-radius: 18px; } }
+    .sheet h2 { font-size: 1.1rem; margin-bottom: 0.8rem; }
+    .sheet label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin: 0.7rem 0 0.25rem; }
+    .sheet input[type=text], .sheet input[type=date], .sheet input[type=number], .sheet select, .sheet textarea {
+      width: 100%; font-size: 0.95rem; padding: 0.6rem 0.7rem; font-family: inherit;
+      border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface);
+    }
+    .sheet-actions { display: flex; gap: 0.5rem; margin-top: 1.1rem; flex-wrap: wrap; }
+    .btn {
+      flex: 1; min-height: var(--tap); min-width: 120px; border: none; border-radius: var(--radius-sm);
+      font-size: 0.95rem; font-weight: 700; padding: 0.6rem 0.9rem;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-ghost   { background: var(--surface-2); color: var(--text); border: 1px solid var(--border-strong); }
+    .btn-danger  { background: var(--danger); color: #fff; }
+    .btn-block { width: 100%; flex: none; }
+
+    .trip-list-item {
+      display: flex; align-items: center; gap: 0.6rem; padding: 0.8rem 0.7rem;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      margin-bottom: 0.5rem; background: var(--surface);
+    }
+    .trip-list-item.current { border-color: var(--primary); background: var(--primary-light); }
+    .trip-list-item .tli-main { flex: 1; min-width: 0; }
+    .trip-list-item .tli-name { font-weight: 700; }
+    .trip-list-item .tli-sub { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .link-btn { background: none; border: none; color: var(--primary); font-weight: 600; font-size: 0.85rem; padding: 0.5rem; }
+    .link-btn.danger { color: var(--danger); }
+
+    /* ── Loading / sign-in overlay ────────────────────── */
+    #overlay {
+      position: fixed; inset: 0; z-index: 200; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1.1rem; text-align: center; padding: 2rem;
+    }
+    #overlay .logo { font-size: 3rem; }
+    #overlayMsg { color: var(--text-muted); font-size: 1rem; max-width: 22rem; }
+    .signin-btn {
+      display: none; align-items: center; gap: 0.6rem;
+      background: var(--surface); border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm); padding: 0.7rem 1.1rem; font-size: 0.95rem; font-weight: 600;
+      box-shadow: var(--shadow); color: var(--text);
+    }
+    .signin-btn svg { width: 20px; height: 20px; }
+    .user-chip { display: flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<header class="site-header" id="appHeader" style="display:none;">
+  <div class="header-top">
+    <button class="trip-switch" id="tripSwitchBtn">
+      <span class="ts-label">Current trip</span>
+      <span class="ts-name" id="currentTripName">No trip selected</span>
+    </button>
+    <button class="icon-btn" id="tripSettingsBtn" title="Trip settings">⚙</button>
+    <button class="icon-btn" id="menuBtn" title="Menu">≡</button>
+  </div>
+  <div class="trip-dates" id="tripDates"></div>
+  <div class="header-progress" id="headerProgress"></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="pack">Pack</button>
+    <button class="tab-btn" data-tab="prep">Prep</button>
+    <button class="tab-btn" data-tab="notes">Notes</button>
+  </div>
+</header>
+
+<main class="wrap" id="appMain" style="display:none;">
+  <section class="tab-section active" id="tab-pack"></section>
+  <section class="tab-section" id="tab-prep"></section>
+  <section class="tab-section" id="tab-notes">
+    <p class="notes-hint">Forgot / almost forgot / want next time — anything to feed back into the knowledge base after the trip.</p>
+    <textarea id="notesArea" placeholder="Trip notes…"></textarea>
+  </section>
+</main>
+
+<!-- Generic sheet host -->
+<div class="sheet-backdrop" id="sheetBackdrop">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div id="overlay">
+  <div class="logo">🧳</div>
+  <div id="overlayMsg">Connecting…</div>
+  <button class="signin-btn" id="signInBtn">
+    <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Sign in with Google
+  </button>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getDatabase, ref, onValue, set, update, push, remove, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ============================================================================
+// CONFIG — fill in after creating the Firebase project "packing-list".
+// (Project Settings → General → Your apps → Web app → SDK config.)
+// ============================================================================
+const _firebaseConfig = {
+  apiKey:            "AIzaSyD4K6HIb1KDBIxFI8EwoQmXt8vqbLl6CS8",
+  authDomain:        "packing-list-7775e.firebaseapp.com",
+  databaseURL:       "https://packing-list-7775e-default-rtdb.firebaseio.com",
+  projectId:         "packing-list-7775e",
+  storageBucket:     "packing-list-7775e.firebasestorage.app",
+  messagingSenderId: "448016208242",
+  appId:             "1:448016208242:web:7b3fd3c75947de749acdeb"
+};
+// Friendly names for attribution display (maps the locked emails → short labels).
+const ALLOWED = {
+  "aanspaugh@gmail.com": "You",
+  "janspaugh90@gmail.com": "Wife",
+};
+
+const _app  = initializeApp(_firebaseConfig);
+const _auth = getAuth(_app);
+const _db   = getDatabase(_app);
+
+// ── App state ───────────────────────────────────────────────────────────────
+let trips        = {};      // tripId -> { meta, pack, prep, notes }
+let currentTripId = null;
+let currentTab   = 'pack';
+let me           = null;    // { email, name }
+let _fbReady     = false;
+let _notesTimer  = null;
+
+const $ = (id) => document.getElementById(id);
+const now = () => Date.now();
+const whoLabel = (email) => ALLOWED[email] || (email ? email.split('@')[0] : '?');
+
+// ============================================================================
+// Auth
+// ============================================================================
+const _provider = new GoogleAuthProvider();
+_provider.setCustomParameters({ prompt: 'select_account' });
+let _accessDenied = false, _listening = false;
+
+$('signInBtn').addEventListener('click', () => {
+  $('overlayMsg').textContent = 'Signing in…';
+  $('signInBtn').style.display = 'none';
+  signInWithPopup(_auth, _provider).catch((err) => {
+    console.error('sign-in failed', err);
+    $('overlayMsg').textContent = 'Sign-in failed. Please try again.';
+    $('signInBtn').style.display = 'inline-flex';
+  });
+});
+
+onAuthStateChanged(_auth, (user) => {
+  if (!user) {
+    $('overlayMsg').textContent = _accessDenied
+      ? "That account can't access this list. Sign in with an authorized Google account."
+      : 'Sign in to load your packing lists';
+    $('signInBtn').style.display = 'inline-flex';
+    return;
+  }
+  me = { email: user.email, name: user.displayName || whoLabel(user.email) };
+  $('overlayMsg').textContent = 'Loading…';
+  $('signInBtn').style.display = 'none';
+  if (_listening) return;
+  _listening = true;
+
+  onValue(ref(_db, 'trips'), (snap) => {
+    trips = snap.val() || {};
+    if (!_fbReady) {
+      _fbReady = true;
+      // pick the active trip (or first non-deleted) on first load
+      get(ref(_db, 'activeTrip')).then((s) => {
+        const at = s.val();
+        currentTripId = (at && trips[at] && !trips[at].meta?.deleted) ? at : firstLiveTrip();
+        bootUI();
+      });
+    } else {
+      if (currentTripId && (!trips[currentTripId] || trips[currentTripId].meta?.deleted)) {
+        currentTripId = firstLiveTrip();
+      }
+      renderAll();
+    }
+  }, (err) => {
+    console.warn('read denied', err);
+    _accessDenied = true;
+    signOut(_auth);
+  });
+});
+
+function bootUI() {
+  $('overlay').style.display = 'none';
+  $('appHeader').style.display = '';
+  $('appMain').style.display = '';
+  renderAll();
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+function liveTrips() {
+  return Object.entries(trips)
+    .filter(([, t]) => !t.meta?.deleted)
+    .sort((a, b) => (a[1].meta?.startDate || '').localeCompare(b[1].meta?.startDate || ''));
+}
+function deletedTrips() {
+  return Object.entries(trips).filter(([, t]) => t.meta?.deleted);
+}
+function firstLiveTrip() {
+  const lt = liveTrips();
+  return lt.length ? lt[0][0] : null;
+}
+function curTrip() { return currentTripId ? trips[currentTripId] : null; }
+
+const TIER_LABEL = { 1: "Tier 1 · can't replace on the road", 2: "Tier 2 · don't re-buy", 3: "Tier 3 · buy-there OK" };
+
+// ============================================================================
+// Rendering
+// ============================================================================
+function renderAll() {
+  const t = curTrip();
+  $('currentTripName').textContent = t?.meta?.name || 'No trip selected';
+  renderTripMeta();
+  renderProgress();
+  renderPack();
+  renderPrep();
+  renderNotes();
+}
+
+// Parse 'YYYY-MM-DD' as a *local* date (avoids UTC off-by-one) and format it.
+function fmtDate(s, withYear) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined,
+    withYear ? { month: 'short', day: 'numeric', year: 'numeric' } : { month: 'short', day: 'numeric' });
+}
+function dayCount(start, end) {
+  const [ys, ms, ds] = start.split('-').map(Number);
+  const [ye, me, de] = end.split('-').map(Number);
+  const nights = Math.max(0, Math.round((new Date(ye, me - 1, de) - new Date(ys, ms - 1, ds)) / 86400000));
+  return { days: nights + 1, nights };
+}
+function renderTripMeta() {
+  const el = $('tripDates');
+  const m = curTrip()?.meta;
+  if (!m || (!m.startDate && !m.endDate)) { el.textContent = ''; el.style.display = 'none'; return; }
+  el.style.display = '';
+  let range, dur = '';
+  if (m.startDate && m.endDate) {
+    range = `${fmtDate(m.startDate, false)} – ${fmtDate(m.endDate, true)}`;
+    const { days, nights } = dayCount(m.startDate, m.endDate);
+    dur = ` · ${days} day${days !== 1 ? 's' : ''}, ${nights} night${nights !== 1 ? 's' : ''}`;
+  } else {
+    range = fmtDate(m.startDate || m.endDate, true);
+  }
+  el.textContent = `📅 ${range}${dur}`;
+}
+
+function renderProgress() {
+  const t = curTrip();
+  const el = $('headerProgress');
+  if (!t) { el.innerHTML = ''; return; }
+  const pack = Object.values(t.pack || {});
+  const prep = Object.values(t.prep || {});
+  const packed   = pack.filter(i => i.packed?.done).length;
+  const inveh    = pack.filter(i => i.inVehicle?.done).length;
+  const prepDone = prep.filter(i => i.done?.state).length;
+  el.innerHTML =
+    `<span class="prog-chip">📦 ${packed}/${pack.length} packed</span>` +
+    `<span class="prog-chip">🚗 ${inveh}/${pack.length} in vehicle</span>` +
+    (prep.length ? `<span class="prog-chip">🏠 ${prepDone}/${prep.length} prep</span>` : '');
+}
+
+function renderPack() {
+  const sec = $('tab-pack');
+  const t = curTrip();
+  if (!t) { sec.innerHTML = `<p class="empty">No trip selected. Tap the trip name to create one.</p>`; return; }
+  const items = Object.entries(t.pack || {});
+  let html = '';
+  if (!items.length) {
+    html += `<p class="empty">No items yet. Add them below, duplicate a previous trip, or run <code>/pack-list</code> in Claude.</p>`;
+  } else {
+    for (const tier of [1, 2, 3]) {
+      const group = items.filter(([, i]) => (i.priority || 3) === tier)
+        .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
+      if (!group.length) continue;
+      html += `<div class="tier-head t${tier}"><span class="dot"></span>${TIER_LABEL[tier]}</div>`;
+      for (const [id, i] of group) html += packItemHTML(id, i);
+    }
+  }
+  html += addRowHTML('pack');
+  sec.innerHTML = html;
+  wirePackEvents(sec);
+}
+
+function packItemHTML(id, i) {
+  const packedOn = !!i.packed?.done, vehOn = !!i.inVehicle?.done;
+  const tier = i.priority || 3;
+  const sub = [];
+  if (i.qty && i.qty != 1) sub.push(`<span class="item-qty">×${i.qty}</span>`);
+  if (vehOn && i.inVehicle?.by) sub.push(`🚗 ${whoLabel(i.inVehicle.by)}`);
+  else if (packedOn && i.packed?.by) sub.push(`📦 ${whoLabel(i.packed.by)}`);
+  if (i.note) sub.push(escapeHTML(i.note));
+  return `<div class="item tier${tier} ${vehOn?'done-vehicle':''}" data-id="${id}">
+    <div class="item-main" data-edit="${id}">
+      <div class="item-name">${escapeHTML(i.name || '')}</div>
+      ${sub.length ? `<div class="item-sub">${sub.join('')}</div>` : ''}
+    </div>
+    <div class="checks">
+      <button class="pill packed ${packedOn?'on':''}" data-toggle="packed" data-id="${id}">
+        <span class="mark">${packedOn?'✓':'○'}</span>Packed</button>
+      <button class="pill vehicle ${vehOn?'on':''}" data-toggle="vehicle" data-id="${id}">
+        <span class="mark">${vehOn?'✓':'○'}</span>Vehicle</button>
+    </div>
+  </div>`;
+}
+
+function renderPrep() {
+  const sec = $('tab-prep');
+  const t = curTrip();
+  if (!t) { sec.innerHTML = `<p class="empty">No trip selected.</p>`; return; }
+  const items = Object.entries(t.prep || {})
+    .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
+  let html = '';
+  if (!items.length) {
+    html += `<p class="empty">Pre-departure tasks (cat cameras, lock up, trash out, cat food/water…). Add below.</p>`;
+  } else {
+    for (const [id, i] of items) {
+      const done = !!i.done?.state;
+      const by = done && i.done?.by ? `<div class="item-sub">✓ ${whoLabel(i.done.by)}</div>` : '';
+      html += `<div class="item prep ${done?'done':''}" data-id="${id}">
+        <div class="item-main" data-edit="${id}"><div class="item-name">${escapeHTML(i.name || '')}</div>${by}</div>
+        <button class="prep-check ${done?'on':''}" data-prep="${id}">✓</button>
+      </div>`;
+    }
+  }
+  html += addRowHTML('prep');
+  sec.innerHTML = html;
+  wirePrepEvents(sec);
+}
+
+function addRowHTML(kind) {
+  const tierSel = kind === 'pack'
+    ? `<select class="add-tier" title="Priority"><option value="3">Tier 3</option><option value="2">Tier 2</option><option value="1">Tier 1</option></select>`
+    : '';
+  return `<div class="add-row">
+    <input type="text" class="add-input" placeholder="${kind==='pack'?'Add an item…':'Add a task…'}" />
+    ${tierSel}
+    <button class="add-btn" data-add="${kind}">+</button>
+  </div>`;
+}
+
+function renderNotes() {
+  const t = curTrip();
+  $('notesArea').value = t?.notes || '';
+  $('notesArea').disabled = !t;
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+}
+
+// ============================================================================
+// Writes
+// ============================================================================
+function tripRef(p) { return ref(_db, `trips/${currentTripId}/${p}`); }
+
+function togglePacked(id, on) {
+  const stamp = on ? { done: true, by: me.email, at: now() } : { done: false, by: null, at: null };
+  const upd = { packed: stamp };
+  if (!on) upd.inVehicle = { done: false, by: null, at: null }; // un-pack clears vehicle
+  update(tripRef(`pack/${id}`), upd);
+}
+function toggleVehicle(id, on) {
+  const upd = { inVehicle: on ? { done: true, by: me.email, at: now() } : { done: false, by: null, at: null } };
+  if (on) upd.packed = { done: true, by: me.email, at: now() }; // in-vehicle implies packed
+  update(tripRef(`pack/${id}`), upd);
+}
+function togglePrep(id, on) {
+  update(tripRef(`prep/${id}`), { done: on ? { state: true, by: me.email, at: now() } : { state: false, by: null, at: null } });
+}
+function addPackItem(name, tier) {
+  const r = push(tripRef('pack'));
+  set(r, { name, qty: 1, priority: Number(tier) || 3, addedBy: me.email, createdAt: now(),
+           packed: { done: false }, inVehicle: { done: false } });
+}
+function addPrepItem(name) {
+  const r = push(tripRef('prep'));
+  set(r, { name, addedBy: me.email, createdAt: now(), done: { state: false } });
+}
+function saveNotes(text) { set(tripRef('notes'), text); }
+
+// ============================================================================
+// Event wiring
+// ============================================================================
+function wirePackEvents(sec) {
+  sec.querySelectorAll('[data-toggle]').forEach(btn => btn.onclick = () => {
+    const id = btn.dataset.id, item = curTrip().pack[id];
+    if (btn.dataset.toggle === 'packed') togglePacked(id, !item.packed?.done);
+    else toggleVehicle(id, !item.inVehicle?.done);
+  });
+  sec.querySelectorAll('[data-edit]').forEach(el => el.onclick = () => openItemEditor('pack', el.dataset.edit));
+  wireAddRow(sec);
+}
+function wirePrepEvents(sec) {
+  sec.querySelectorAll('[data-prep]').forEach(btn => btn.onclick = () => {
+    const id = btn.dataset.prep; togglePrep(id, !curTrip().prep[id].done?.state);
+  });
+  sec.querySelectorAll('[data-edit]').forEach(el => el.onclick = () => openItemEditor('prep', el.dataset.edit));
+  wireAddRow(sec);
+}
+function wireAddRow(sec) {
+  const addBtn = sec.querySelector('[data-add]');
+  if (!addBtn) return;
+  const input = sec.querySelector('.add-input');
+  const tierSel = sec.querySelector('.add-tier');
+  const submit = () => {
+    const v = input.value.trim();
+    if (!v || !currentTripId) return;
+    if (addBtn.dataset.add === 'pack') addPackItem(v, tierSel?.value); else addPrepItem(v);
+    input.value = ''; input.focus();
+  };
+  addBtn.onclick = submit;
+  input.onkeydown = (e) => { if (e.key === 'Enter') submit(); };
+}
+
+$('notesArea').addEventListener('input', (e) => {
+  if (!currentTripId) return;
+  clearTimeout(_notesTimer);
+  const v = e.target.value;
+  _notesTimer = setTimeout(() => saveNotes(v), 600);
+});
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => {
+  currentTab = b.dataset.tab;
+  document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.toggle('active', s.id === `tab-${currentTab}`));
+});
+
+// ============================================================================
+// Sheets (modals)
+// ============================================================================
+function openSheet(html) { $('sheet').innerHTML = html; $('sheetBackdrop').classList.add('open'); }
+function closeSheet() { $('sheetBackdrop').classList.remove('open'); }
+$('sheetBackdrop').addEventListener('click', (e) => { if (e.target === $('sheetBackdrop')) closeSheet(); });
+
+// Item editor (edit name/qty/tier/note + delete)
+function openItemEditor(kind, id) {
+  const i = curTrip()[kind][id];
+  const tierField = kind === 'pack' ? `
+    <label>Priority tier</label>
+    <select id="ie-tier">
+      <option value="1" ${i.priority==1?'selected':''}>Tier 1 — can't replace on the road</option>
+      <option value="2" ${i.priority==2?'selected':''}>Tier 2 — don't re-buy</option>
+      <option value="3" ${(i.priority||3)==3?'selected':''}>Tier 3 — buy-there OK</option>
+    </select>
+    <label>Quantity</label>
+    <input type="number" id="ie-qty" min="1" value="${i.qty||1}" />` : '';
+  openSheet(`
+    <h2>Edit ${kind === 'pack' ? 'item' : 'task'}</h2>
+    <label>Name</label>
+    <input type="text" id="ie-name" value="${escapeHTML(i.name||'')}" />
+    ${tierField}
+    <label>Note</label>
+    <input type="text" id="ie-note" value="${escapeHTML(i.note||'')}" placeholder="optional" />
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="ie-cancel">Cancel</button>
+      <button class="btn btn-primary" id="ie-save">Save</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-danger btn-block" id="ie-del">Delete</button>
+    </div>`);
+  $('ie-cancel').onclick = closeSheet;
+  $('ie-save').onclick = () => {
+    const upd = { name: $('ie-name').value.trim(), note: $('ie-note').value.trim() };
+    if (kind === 'pack') { upd.priority = Number($('ie-tier').value); upd.qty = Number($('ie-qty').value) || 1; }
+    if (!upd.name) return;
+    update(ref(_db, `trips/${currentTripId}/${kind}/${id}`), upd);
+    closeSheet();
+  };
+  $('ie-del').onclick = () => {
+    if (!confirm(`Delete "${i.name}"?`)) return;
+    remove(ref(_db, `trips/${currentTripId}/${kind}/${id}`));
+    closeSheet();
+  };
+}
+
+// Trip switcher
+$('tripSwitchBtn').onclick = () => {
+  const lt = liveTrips();
+  let rows = lt.map(([id, t]) => `
+    <div class="trip-list-item ${id===currentTripId?'current':''}">
+      <div class="tli-main" data-pick="${id}">
+        <div class="tli-name">${escapeHTML(t.meta?.name || 'Untitled')}</div>
+        <div class="tli-sub">${escapeHTML(t.meta?.destination||'')} ${t.meta?.startDate?('· '+t.meta.startDate):''} ${t.meta?.type?('· '+t.meta.type):''}</div>
+      </div>
+      ${id===currentTripId?'<span style="color:var(--primary);font-size:0.78rem;font-weight:700;">current</span>':''}
+    </div>`).join('');
+  if (!lt.length) rows = `<p class="empty">No trips yet — create your first one.</p>`;
+  openSheet(`
+    <h2>Trips</h2>
+    ${rows}
+    <div class="sheet-actions">
+      <button class="btn btn-primary btn-block" id="ts-new">+ New blank trip</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="ts-dup" ${currentTripId?'':'disabled'}>Duplicate current</button>
+      <button class="btn btn-ghost" id="ts-trash">Trash (${deletedTrips().length})</button>
+    </div>`);
+  $('sheet').querySelectorAll('[data-pick]').forEach(el => el.onclick = () => pickTrip(el.dataset.pick));
+  $('ts-new').onclick = openNewTrip;
+  $('ts-dup').onclick = duplicateCurrent;
+  $('ts-trash').onclick = openTrash;
+};
+
+function pickTrip(id) {
+  currentTripId = id;
+  set(ref(_db, 'activeTrip'), id);
+  closeSheet();
+  renderAll();
+}
+
+function openNewTrip() {
+  openSheet(`
+    <h2>New trip</h2>
+    <label>Trip name</label>
+    <input type="text" id="nt-name" placeholder="e.g. Indiana – July 4" />
+    <label>Destination</label>
+    <input type="text" id="nt-dest" placeholder="e.g. Indiana" />
+    <label>Type</label>
+    <select id="nt-type"><option value="family-stay">Family-stay</option><option value="vacation">Vacation</option><option value="other">Other</option></select>
+    <label>Start date</label><input type="date" id="nt-start" />
+    <label>End date</label><input type="date" id="nt-end" />
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="nt-cancel">Cancel</button>
+      <button class="btn btn-primary" id="nt-create">Create</button>
+    </div>`);
+  $('nt-cancel').onclick = closeSheet;
+  $('nt-create').onclick = () => {
+    const name = $('nt-name').value.trim();
+    if (!name) return;
+    const start = $('nt-start').value, end = $('nt-end').value;
+    const days = (start && end) ? Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000) + 1) : null;
+    const r = push(ref(_db, 'trips'));
+    set(r, { meta: { name, destination: $('nt-dest').value.trim(), type: $('nt-type').value,
+             startDate: start, endDate: end, days, createdAt: now(), deleted: false } });
+    pickTrip(r.key);
+  };
+}
+
+function duplicateCurrent() {
+  const t = curTrip(); if (!t) return;
+  const r = push(ref(_db, 'trips'));
+  const copy = { meta: { ...(t.meta||{}), name: (t.meta?.name||'Trip') + ' (copy)', createdAt: now(), deleted: false, deletedAt: null }, pack: {}, prep: {} };
+  // copy items, reset check state
+  for (const [, i] of Object.entries(t.pack || {})) {
+    const ir = push(ref(_db, `trips/${r.key}/pack`)); copy.pack[ir.key] = null;
+    set(ir, { name: i.name, qty: i.qty || 1, priority: i.priority || 3, note: i.note || '', addedBy: me.email, createdAt: now(), packed: { done: false }, inVehicle: { done: false } });
+  }
+  for (const [, i] of Object.entries(t.prep || {})) {
+    const ir = push(ref(_db, `trips/${r.key}/prep`));
+    set(ir, { name: i.name, note: i.note || '', addedBy: me.email, createdAt: now(), done: { state: false } });
+  }
+  set(ref(_db, `trips/${r.key}/meta`), copy.meta);
+  pickTrip(r.key);
+}
+
+// Trip settings (rename / dates / soft delete)
+$('tripSettingsBtn').onclick = () => {
+  const t = curTrip(); if (!t) { return; }
+  const m = t.meta || {};
+  openSheet(`
+    <h2>Trip settings</h2>
+    <label>Trip name</label><input type="text" id="es-name" value="${escapeHTML(m.name||'')}" />
+    <label>Destination</label><input type="text" id="es-dest" value="${escapeHTML(m.destination||'')}" />
+    <label>Type</label>
+    <select id="es-type">
+      <option value="family-stay" ${m.type==='family-stay'?'selected':''}>Family-stay</option>
+      <option value="vacation" ${m.type==='vacation'?'selected':''}>Vacation</option>
+      <option value="other" ${m.type==='other'?'selected':''}>Other</option>
+    </select>
+    <label>Start date</label><input type="date" id="es-start" value="${m.startDate||''}" />
+    <label>End date</label><input type="date" id="es-end" value="${m.endDate||''}" />
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="es-cancel">Cancel</button>
+      <button class="btn btn-primary" id="es-save">Save</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-danger btn-block" id="es-del">Move trip to Trash</button>
+    </div>`);
+  $('es-cancel').onclick = closeSheet;
+  $('es-save').onclick = () => {
+    const start = $('es-start').value, end = $('es-end').value;
+    const days = (start && end) ? Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000) + 1) : (m.days || null);
+    update(ref(_db, `trips/${currentTripId}/meta`), { name: $('es-name').value.trim() || m.name, destination: $('es-dest').value.trim(), type: $('es-type').value, startDate: start, endDate: end, days });
+    closeSheet();
+  };
+  $('es-del').onclick = () => {
+    if (!confirm(`Move "${m.name}" to Trash? It can be restored from there.`)) return;
+    update(ref(_db, `trips/${currentTripId}/meta`), { deleted: true, deletedAt: now() });
+    currentTripId = firstLiveTrip();
+    if (currentTripId) set(ref(_db, 'activeTrip'), currentTripId);
+    closeSheet(); renderAll();
+  };
+};
+
+// Trash (restore / permanent delete — separate, deliberate step)
+function openTrash() {
+  const dt = deletedTrips();
+  let rows = dt.map(([id, t]) => `
+    <div class="trip-list-item">
+      <div class="tli-main">
+        <div class="tli-name">${escapeHTML(t.meta?.name||'Untitled')}</div>
+        <div class="tli-sub">deleted ${t.meta?.deletedAt ? new Date(t.meta.deletedAt).toLocaleDateString() : ''}</div>
+      </div>
+      <button class="link-btn" data-restore="${id}">Restore</button>
+      <button class="link-btn danger" data-purge="${id}">Delete</button>
+    </div>`).join('');
+  if (!dt.length) rows = `<p class="empty">Trash is empty.</p>`;
+  openSheet(`<h2>Trash</h2><p class="notes-hint">Restore brings a trip back. Permanent delete asks twice and cannot be undone.</p>${rows}
+    <div class="sheet-actions"><button class="btn btn-ghost btn-block" id="tr-back">Back</button></div>`);
+  $('tr-back').onclick = $('tripSwitchBtn').onclick;
+  $('sheet').querySelectorAll('[data-restore]').forEach(b => b.onclick = () => {
+    update(ref(_db, `trips/${b.dataset.restore}/meta`), { deleted: false, deletedAt: null }); openTrash();
+  });
+  $('sheet').querySelectorAll('[data-purge]').forEach(b => b.onclick = () => {
+    const id = b.dataset.purge, nm = trips[id]?.meta?.name || 'this trip';
+    if (!confirm(`Permanently delete "${nm}"? This cannot be undone.`)) return;
+    if (!confirm(`Are you absolutely sure? "${nm}" and all its items will be gone forever.`)) return;
+    remove(ref(_db, `trips/${id}`)); openTrash();
+  });
+}
+
+// Menu (sign out + who's signed in)
+$('menuBtn').onclick = () => {
+  openSheet(`<h2>Menu</h2>
+    <p class="notes-hint">Signed in as <strong>${escapeHTML(me?.email||'')}</strong></p>
+    <div class="sheet-actions"><button class="btn btn-ghost btn-block" id="mn-out">Sign out</button></div>
+    <div class="sheet-actions"><button class="btn btn-primary btn-block" id="mn-close">Close</button></div>`);
+  $('mn-close').onclick = closeSheet;
+  $('mn-out').onclick = () => signOut(_auth).then(() => location.reload());
+};
+</script>
+</body>
+</html>
