@@ -254,9 +254,11 @@
     .hide-notes .item-note { display: none; }
     .hide-notes .item-sub:has(> .item-note:only-child) { display: none; }
 
-    /* Hide done items */
-    .hide-done .item.done-vehicle { display: none; }
-    .hide-done .item.prep.done    { display: none; }
+    /* Pack: hide by check state */
+    .hide-packed .item.is-packed   { display: none; }
+    .hide-vehicle .item.done-vehicle { display: none; }
+    /* Prep: hide done */
+    .hide-done .item.prep.done { display: none; }
   </style>
 </head>
 <body>
@@ -337,8 +339,10 @@ let currentTab   = 'pack';
 let me           = null;    // { email, name }
 let _fbReady     = false;
 let _notesTimer  = null;
-let filterShowNotes = JSON.parse(localStorage.getItem('filterShowNotes') ?? 'true');
-let filterHideDone  = JSON.parse(localStorage.getItem('filterHideDone')  ?? 'false');
+let filterShowNotes   = JSON.parse(localStorage.getItem('filterShowNotes')   ?? 'true');
+let filterHidePacked  = JSON.parse(localStorage.getItem('filterHidePacked')  ?? 'false');
+let filterHideVehicle = JSON.parse(localStorage.getItem('filterHideVehicle') ?? 'false');
+let filterHideDone    = JSON.parse(localStorage.getItem('filterHideDone')    ?? 'false');
 
 const $ = (id) => document.getElementById(id);
 const now = () => Date.now();
@@ -481,9 +485,17 @@ function renderProgress() {
     (prep.length ? `<span class="prog-chip">🏠 ${prepDone}/${prep.length} prep</span>` : '');
 }
 
-function filterBarHTML() {
+function filterBarHTML(tab) {
+  const notesChip = `<button class="filter-chip${filterShowNotes ? ' on' : ''}" data-filter="notes">Notes</button>`;
+  if (tab === 'pack') {
+    return `<div class="filter-bar">
+      ${notesChip}
+      <button class="filter-chip${filterHidePacked ? ' on' : ''}" data-filter="hide-packed">Packed</button>
+      <button class="filter-chip${filterHideVehicle ? ' on' : ''}" data-filter="hide-vehicle">In Vehicle</button>
+    </div>`;
+  }
   return `<div class="filter-bar">
-    <button class="filter-chip${filterShowNotes ? ' on' : ''}" data-filter="notes">Notes</button>
+    ${notesChip}
     <button class="filter-chip${filterHideDone ? ' on' : ''}" data-filter="hide-done">Hide done</button>
   </div>`;
 }
@@ -493,7 +505,7 @@ function renderPack() {
   const t = curTrip();
   if (!t) { sec.innerHTML = `<p class="empty">No trip selected. Tap the trip name to create one.</p>`; return; }
   const items = Object.entries(t.pack || {});
-  let html = filterBarHTML();
+  let html = filterBarHTML('pack');
   if (!items.length) {
     html += `<p class="empty">No items yet. Add them below, duplicate a previous trip, or run <code>/pack-list</code> in Claude.</p>`;
   } else {
@@ -518,7 +530,7 @@ function packItemHTML(id, i) {
   if (vehOn && i.inVehicle?.by) sub.push(`🚗 ${whoLabel(i.inVehicle.by)}`);
   else if (packedOn && i.packed?.by) sub.push(`📦 ${whoLabel(i.packed.by)}`);
   if (i.note) sub.push(`<span class="item-note">${escapeHTML(i.note)}</span>`);
-  return `<div class="item tier${tier} ${vehOn?'done-vehicle':''}" data-id="${id}">
+  return `<div class="item tier${tier} ${vehOn?'done-vehicle':(packedOn?'is-packed':'')}" data-id="${id}">
     <div class="item-main" data-edit="${id}">
       <div class="item-name">${escapeHTML(i.name || '')}</div>
       ${sub.length ? `<div class="item-sub">${sub.join('')}</div>` : ''}
@@ -538,7 +550,7 @@ function renderPrep() {
   if (!t) { sec.innerHTML = `<p class="empty">No trip selected.</p>`; return; }
   const items = Object.entries(t.prep || {})
     .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
-  let html = filterBarHTML();
+  let html = filterBarHTML('prep');
   if (!items.length) {
     html += `<p class="empty">Pre-departure tasks (cat cameras, lock up, trash out, cat food/water…). Add below.</p>`;
   } else {
@@ -578,9 +590,19 @@ function renderNotes() {
 
 function applyFilters(sec, tab) {
   sec.classList.toggle('hide-notes', !filterShowNotes);
-  sec.classList.toggle('hide-done', filterHideDone);
+  if (tab === 'pack') {
+    sec.classList.toggle('hide-packed', filterHidePacked);
+    sec.classList.toggle('hide-vehicle', filterHideVehicle);
+  } else {
+    sec.classList.toggle('hide-done', filterHideDone);
+  }
   sec.querySelectorAll('[data-filter]').forEach(btn => {
-    btn.classList.toggle('on', btn.dataset.filter === 'notes' ? filterShowNotes : filterHideDone);
+    const f = btn.dataset.filter;
+    const on = f === 'notes' ? filterShowNotes
+             : f === 'hide-packed'  ? filterHidePacked
+             : f === 'hide-vehicle' ? filterHideVehicle
+             : filterHideDone;
+    btn.classList.toggle('on', on);
   });
   if (tab === 'pack') updateTierVisibility(sec);
 }
@@ -590,7 +612,9 @@ function updateTierVisibility(sec) {
     let el = head.nextElementSibling;
     let hasVisible = false;
     while (el && !el.classList.contains('tier-head') && !el.classList.contains('add-row')) {
-      if (el.classList.contains('item') && !(filterHideDone && el.classList.contains('done-vehicle'))) {
+      if (el.classList.contains('item') &&
+          !(filterHidePacked && el.classList.contains('is-packed')) &&
+          !(filterHideVehicle && el.classList.contains('done-vehicle'))) {
         hasVisible = true; break;
       }
       el = el.nextElementSibling;
@@ -605,6 +629,12 @@ function wireFilterChips(sec, tab) {
       if (btn.dataset.filter === 'notes') {
         filterShowNotes = !filterShowNotes;
         localStorage.setItem('filterShowNotes', filterShowNotes);
+      } else if (btn.dataset.filter === 'hide-packed') {
+        filterHidePacked = !filterHidePacked;
+        localStorage.setItem('filterHidePacked', filterHidePacked);
+      } else if (btn.dataset.filter === 'hide-vehicle') {
+        filterHideVehicle = !filterHideVehicle;
+        localStorage.setItem('filterHideVehicle', filterHideVehicle);
       } else {
         filterHideDone = !filterHideDone;
         localStorage.setItem('filterHideDone', filterHideDone);
