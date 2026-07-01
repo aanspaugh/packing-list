@@ -256,7 +256,8 @@
     .hide-notes .item-sub:has(> .item-note:only-child) { display: none; }
 
     /* Pack: hide by check state */
-    .hide-packed .item.is-packed   { display: none; }
+    .hide-packed .item.is-packed,
+    .hide-packed .item.done-vehicle  { display: none; }
     .hide-vehicle .item.done-vehicle { display: none; }
     /* Prep: hide done */
     .hide-done .item.prep.done { display: none; }
@@ -614,7 +615,7 @@ function updateTierVisibility(sec) {
     let hasVisible = false;
     while (el && !el.classList.contains('tier-head') && !el.classList.contains('add-row')) {
       if (el.classList.contains('item') &&
-          !(filterHidePacked && el.classList.contains('is-packed')) &&
+          !(filterHidePacked && (el.classList.contains('is-packed') || el.classList.contains('done-vehicle'))) &&
           !(filterHideVehicle && el.classList.contains('done-vehicle'))) {
         hasVisible = true; break;
       }
