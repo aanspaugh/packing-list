@@ -240,6 +240,23 @@
     }
     .signin-btn svg { width: 20px; height: 20px; }
     .user-chip { display: flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; color: var(--text-muted); }
+
+    /* ── Filter bar ───────────────────────────────────── */
+    .filter-bar { display: flex; gap: 0.5rem; padding: 0.5rem 0.15rem 0.25rem; }
+    .filter-chip {
+      font-size: 0.75rem; padding: 0.25rem 0.65rem; border-radius: 999px;
+      border: 1px solid var(--border-strong); background: var(--surface-2);
+      color: var(--text-muted); cursor: pointer; user-select: none;
+    }
+    .filter-chip.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* Hide notes */
+    .hide-notes .item-note { display: none; }
+    .hide-notes .item-sub:has(> .item-note:only-child) { display: none; }
+
+    /* Hide done items */
+    .hide-done .item.done-vehicle { display: none; }
+    .hide-done .item.prep.done    { display: none; }
   </style>
 </head>
 <body>
@@ -320,6 +337,8 @@ let currentTab   = 'pack';
 let me           = null;    // { email, name }
 let _fbReady     = false;
 let _notesTimer  = null;
+let filterShowNotes = JSON.parse(localStorage.getItem('filterShowNotes') ?? 'true');
+let filterHideDone  = JSON.parse(localStorage.getItem('filterHideDone')  ?? 'false');
 
 const $ = (id) => document.getElementById(id);
 const now = () => Date.now();
@@ -462,12 +481,19 @@ function renderProgress() {
     (prep.length ? `<span class="prog-chip">🏠 ${prepDone}/${prep.length} prep</span>` : '');
 }
 
+function filterBarHTML() {
+  return `<div class="filter-bar">
+    <button class="filter-chip${filterShowNotes ? ' on' : ''}" data-filter="notes">Notes</button>
+    <button class="filter-chip${filterHideDone ? ' on' : ''}" data-filter="hide-done">Hide done</button>
+  </div>`;
+}
+
 function renderPack() {
   const sec = $('tab-pack');
   const t = curTrip();
   if (!t) { sec.innerHTML = `<p class="empty">No trip selected. Tap the trip name to create one.</p>`; return; }
   const items = Object.entries(t.pack || {});
-  let html = '';
+  let html = filterBarHTML();
   if (!items.length) {
     html += `<p class="empty">No items yet. Add them below, duplicate a previous trip, or run <code>/pack-list</code> in Claude.</p>`;
   } else {
@@ -491,7 +517,7 @@ function packItemHTML(id, i) {
   if (i.qty && i.qty != 1) sub.push(`<span class="item-qty">×${i.qty}</span>`);
   if (vehOn && i.inVehicle?.by) sub.push(`🚗 ${whoLabel(i.inVehicle.by)}`);
   else if (packedOn && i.packed?.by) sub.push(`📦 ${whoLabel(i.packed.by)}`);
-  if (i.note) sub.push(escapeHTML(i.note));
+  if (i.note) sub.push(`<span class="item-note">${escapeHTML(i.note)}</span>`);
   return `<div class="item tier${tier} ${vehOn?'done-vehicle':''}" data-id="${id}">
     <div class="item-main" data-edit="${id}">
       <div class="item-name">${escapeHTML(i.name || '')}</div>
@@ -512,15 +538,18 @@ function renderPrep() {
   if (!t) { sec.innerHTML = `<p class="empty">No trip selected.</p>`; return; }
   const items = Object.entries(t.prep || {})
     .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
-  let html = '';
+  let html = filterBarHTML();
   if (!items.length) {
     html += `<p class="empty">Pre-departure tasks (cat cameras, lock up, trash out, cat food/water…). Add below.</p>`;
   } else {
     for (const [id, i] of items) {
       const done = !!i.done?.state;
-      const by = done && i.done?.by ? `<div class="item-sub">✓ ${whoLabel(i.done.by)}</div>` : '';
+      const subParts = [];
+      if (done && i.done?.by) subParts.push(`✓ ${whoLabel(i.done.by)}`);
+      if (i.note) subParts.push(`<span class="item-note">${escapeHTML(i.note)}</span>`);
+      const sub = subParts.length ? `<div class="item-sub">${subParts.join('')}</div>` : '';
       html += `<div class="item prep ${done?'done':''}" data-id="${id}">
-        <div class="item-main" data-edit="${id}"><div class="item-name">${escapeHTML(i.name || '')}</div>${by}</div>
+        <div class="item-main" data-edit="${id}"><div class="item-name">${escapeHTML(i.name || '')}</div>${sub}</div>
         <button class="prep-check ${done?'on':''}" data-prep="${id}">✓</button>
       </div>`;
     }
@@ -545,6 +574,46 @@ function renderNotes() {
   const t = curTrip();
   $('notesArea').value = t?.notes || '';
   $('notesArea').disabled = !t;
+}
+
+function applyFilters(sec, tab) {
+  sec.classList.toggle('hide-notes', !filterShowNotes);
+  sec.classList.toggle('hide-done', filterHideDone);
+  sec.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.classList.toggle('on', btn.dataset.filter === 'notes' ? filterShowNotes : filterHideDone);
+  });
+  if (tab === 'pack') updateTierVisibility(sec);
+}
+
+function updateTierVisibility(sec) {
+  sec.querySelectorAll('.tier-head').forEach(head => {
+    let el = head.nextElementSibling;
+    let hasVisible = false;
+    while (el && !el.classList.contains('tier-head') && !el.classList.contains('add-row')) {
+      if (el.classList.contains('item') && !(filterHideDone && el.classList.contains('done-vehicle'))) {
+        hasVisible = true; break;
+      }
+      el = el.nextElementSibling;
+    }
+    head.style.display = hasVisible ? '' : 'none';
+  });
+}
+
+function wireFilterChips(sec, tab) {
+  sec.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.onclick = () => {
+      if (btn.dataset.filter === 'notes') {
+        filterShowNotes = !filterShowNotes;
+        localStorage.setItem('filterShowNotes', filterShowNotes);
+      } else {
+        filterHideDone = !filterHideDone;
+        localStorage.setItem('filterHideDone', filterHideDone);
+      }
+      applyFilters($('tab-pack'), 'pack');
+      applyFilters($('tab-prep'), 'prep');
+    };
+  });
+  applyFilters(sec, tab);
 }
 
 function escapeHTML(s) {
@@ -592,6 +661,7 @@ function wirePackEvents(sec) {
   });
   sec.querySelectorAll('[data-edit]').forEach(el => el.onclick = () => openItemEditor('pack', el.dataset.edit));
   wireAddRow(sec);
+  wireFilterChips(sec, 'pack');
 }
 function wirePrepEvents(sec) {
   sec.querySelectorAll('[data-prep]').forEach(btn => btn.onclick = () => {
@@ -599,6 +669,7 @@ function wirePrepEvents(sec) {
   });
   sec.querySelectorAll('[data-edit]').forEach(el => el.onclick = () => openItemEditor('prep', el.dataset.edit));
   wireAddRow(sec);
+  wireFilterChips(sec, 'prep');
 }
 function wireAddRow(sec) {
   const addBtn = sec.querySelector('[data-add]');
