@@ -428,7 +428,7 @@ function firstLiveTrip() {
 }
 function curTrip() { return currentTripId ? trips[currentTripId] : null; }
 
-const TIER_LABEL = { 1: "Tier 1 · can't replace on the road", 2: "Tier 2 · don't re-buy", 3: "Tier 3 · optional or buy-there OK" };
+const TIER_LABEL = { 1: "Tier 1 · Unique / High-Priority", 2: "Tier 2 · Standard", 3: "Tier 3 · Optional" };
 
 // ============================================================================
 // Rendering
@@ -745,9 +745,9 @@ function openItemEditor(kind, id) {
   const tierField = kind === 'pack' ? `
     <label>Priority tier</label>
     <select id="ie-tier">
-      <option value="1" ${i.priority==1?'selected':''}>Tier 1 — can't replace on the road</option>
-      <option value="2" ${i.priority==2?'selected':''}>Tier 2 — don't re-buy</option>
-      <option value="3" ${(i.priority||3)==3?'selected':''}>Tier 3 — optional or buy-there OK</option>
+      <option value="1" ${i.priority==1?'selected':''}>Tier 1 — Unique / High-Priority</option>
+      <option value="2" ${i.priority==2?'selected':''}>Tier 2 — Standard</option>
+      <option value="3" ${(i.priority||3)==3?'selected':''}>Tier 3 — Optional</option>
     </select>
     <label>Quantity</label>
     <input type="number" id="ie-qty" min="1" value="${i.qty||1}" />` : '';
